@@ -2,6 +2,10 @@
 
 A Raft consensus implementation in Rust, tested with deterministic simulation.
 
+**[Open the visualizer](https://dhanushkrishna4.github.io/Raft-deterministic-simulator-visualized/)**
+&nbsp;·&nbsp;
+**[What the fuzzer found](https://dhanushkrishna4.github.io/Raft-deterministic-simulator-visualized/results.html)**
+
 The Raft implementation is table stakes. The deterministic simulator and the
 linearizability checker are the project.
 
@@ -39,7 +43,7 @@ Build order steps 1–3 are done.
 - [x] 13. WASM boundary + cluster rendering
 - [x] 14. Full visualization: logs, timeline, partitions
 - [x] 15. Fuzz results page + bug writeups
-- [ ] 16. GitHub Pages deploy
+- [x] 16. GitHub Pages deploy
 
 ## Layout
 

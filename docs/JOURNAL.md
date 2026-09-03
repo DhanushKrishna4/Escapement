@@ -1524,3 +1524,65 @@ in development and has not been reproduced since the search space widened; it is
 in milliseconds. Random search covers the space you did not think of;
 handcrafted tests cover the space you did. Neither replaces the other, and the
 page says so.
+
+---
+
+## Entry 14 — CI and the Pages deploy (build order step 16)
+
+**Goal:** the project on GitHub, tested on every push, deployed to Pages.
+
+**Status:** done. 297 tests pass, clippy clean, formatted.
+
+### CI gates on the things that would invalidate the project
+
+`ci.yml` runs three jobs. The test job is the important one: the determinism
+test and the source scan for wall-clock time, ambient randomness and hash
+iteration both live in `cargo test`. Any of those creeping in makes every
+recorded seed in the repository mean something different, so they gate the build
+rather than living in a nightly job that nobody reads.
+
+The fuzz job sweeps a **fixed** seed range, so a regression shows up as the same
+seed failing rather than as a number that drifts run to run. It then runs a
+short sweep with a bug deliberately switched on and fails if the fuzzer comes
+back clean — a harness reporting "no violations" is only worth something if it
+would have said otherwise.
+
+### The base path is derived, not written down
+
+Pages serves from a repository subpath, so every asset URL has to be relative to
+it. The workflow computes it from `GITHUB_REPOSITORY` rather than hardcoding a
+string, so renaming the repository cannot silently break every asset. The 404
+page bounces back to the visualizer keeping the query string, because a shared
+link with a seed in it should survive a mistyped path.
+
+### Making CI pass took a real cleanup
+
+Adding `clippy -D warnings` and `fmt --check` to CI meant actually satisfying
+them, and the codebase had accumulated eleven lints. Most were cosmetic, but two
+were worth the change on their own merits:
+
+* `Workload::next` reads like `Iterator::next` and is not one. Renamed to
+  `next_request`.
+* Three test files declared bare `[(&str, fn() -> NetworkConfig); 4]` types.
+  Aliased, because that signature is unreadable at every use site.
+
+One had to be done carefully. Clippy wanted the PRNG stream labels regrouped
+into even hex digit groups, and those labels *are* the streams — changing a
+value changes every seed derived from it, which would have invalidated the three
+repro links on the results page. They were padded with leading zeros instead, so
+the values are byte-identical, and the repros were re-verified afterwards
+through the wasm boundary.
+
+### Attribution
+
+Commits are authored solely by the repository owner, with no co-author trailers.
+
+### Notes for later
+
+- `Swatinem/rust-cache` is doing the heavy lifting on CI time; a cold run builds
+  the whole workspace plus a release fuzz binary.
+- The Pages workflow installs `wasm-pack` by curl on every run. Pinning a
+  version would be more reproducible; the installer script is a moving target.
+- `tools/build-web.sh` is the only correct way to build the site by hand. Doing
+  the halves separately is how the wasm module went stale in step 15 and cost an
+  hour.
