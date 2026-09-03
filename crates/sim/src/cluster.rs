@@ -248,6 +248,12 @@ pub struct Cluster {
     /// True while a disturbance is in effect, so the schedule alternates
     /// between breaking something and healing it.
     disturbed: bool,
+    /// Set once the caller has asked for no further disturbances.
+    ///
+    /// Healing repairs what is currently broken; it does not stop the schedule,
+    /// which keeps injecting. "Heal and wait for the cluster to settle" is only
+    /// a meaningful thing to ask for if something can also turn the tap off.
+    faults_stopped: bool,
     faults_injected: Vec<(Tick, Fault)>,
 
     trace: Trace,
@@ -314,6 +320,7 @@ impl Cluster {
             restarts: BTreeMap::new(),
             compaction_pending: BTreeSet::new(),
             disturbed: false,
+            faults_stopped: false,
             faults_injected: Vec::new(),
             cfg,
             now: 0,
@@ -375,6 +382,9 @@ impl Cluster {
     }
 
     fn schedule_next_fault(&mut self) {
+        if self.faults_stopped {
+            return;
+        }
         let delay = if self.disturbed {
             self.cfg.faults.outage_span(&mut self.fault_rng)
         } else {
@@ -394,6 +404,12 @@ impl Cluster {
     }
 
     fn apply_fault(&mut self, seq: Seq, fault: Fault) {
+        // A disturbance already queued when the tap was turned off is dropped;
+        // a repair still runs, because leaving the cluster broken is not what
+        // "stop breaking things" means.
+        if self.faults_stopped && !matches!(fault, Fault::Heal) {
+            return;
+        }
         let ids = self.node_ids();
         self.net.partitions_mut().apply(&fault, &ids);
         self.apply_node_fault(seq, &fault);
@@ -1353,6 +1369,25 @@ impl Cluster {
 
     pub fn heal(&mut self) {
         self.inject(Fault::Heal);
+    }
+
+    /// Stop the fault schedule, so the cluster can be left to settle.
+    ///
+    /// `heal` repairs what is broken right now; this stops anything further
+    /// being broken. Both are needed to ask "does it converge?" and get an
+    /// answer that means something — otherwise a node crashed by the schedule
+    /// moments before the check is indistinguishable from one that failed to
+    /// catch up.
+    pub fn stop_faults(&mut self) {
+        self.faults_stopped = true;
+    }
+
+    /// Stop injecting faults, repair everything, and run until the cluster is
+    /// quiet.
+    pub fn settle(&mut self, ticks: Tick) {
+        self.stop_faults();
+        self.heal();
+        self.run_for(ticks);
     }
 
     /// Ask the current leader to change the cluster membership (§6).

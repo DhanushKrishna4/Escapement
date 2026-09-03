@@ -472,8 +472,7 @@ fn the_cluster_recovers_between_disturbances() {
             FaultConfig::occasional(),
             30_000,
         );
-        sim.heal();
-        sim.run_for(30_000);
+        sim.settle(30_000);
         let ids = sim.node_ids();
         let reference = sim.machine(ids[0]).snapshot().clone();
         if ids

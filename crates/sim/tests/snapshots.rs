@@ -369,8 +369,11 @@ fn compaction_and_crashes_together_still_converge() {
             n += 1;
             sim.run_for(150);
         }
-        sim.heal();
-        sim.run_for(25_000);
+        // Stop the schedule as well as healing. `crash_only` keeps firing
+        // otherwise, and a node it restarted moments before the check has not
+        // had time to catch up -- which looks exactly like a node that never
+        // will.
+        sim.settle(25_000);
 
         let ids = sim.node_ids();
         let running: Vec<u32> = ids

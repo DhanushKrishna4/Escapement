@@ -1586,3 +1586,35 @@ Commits are authored solely by the repository owner, with no co-author trailers.
 - `tools/build-web.sh` is the only correct way to build the site by hand. Doing
   the halves separately is how the wasm module went stale in step 15 and cost an
   hour.
+
+### Postscript: two things CI caught immediately
+
+**A real test bug, hidden by a bad verification command.** The first CI run
+failed on `compaction_and_crashes_together_still_converge`. It failed locally
+too, identically — I had simply not noticed, because the one-liner I had been
+using to summarise `cargo test` all along was
+
+```
+awk -F'[ ;]' '{p+=$4; f+=$8}'
+```
+
+and on a `test result:` line `$8` is the *word* "failed", not a number. Awk
+coerces it to 0. **My failure count had been zero by construction for the entire
+project.** The passing count was real, which is why the totals always looked
+plausible.
+
+The lesson is not subtle and is worth writing down: check the exit code. A
+summary that cannot express failure is not a summary, it is a decoration.
+
+**And the failure it was hiding was real.** At seed 7, node 1 finished the run
+with `commitIndex` exactly equal to its snapshot index — it had been restarted by
+the fault schedule moments before the assertion and had not caught up.
+
+The test called `heal()` and waited, on the assumption that healing stops the
+disturbances. It does not: `heal` repairs what is broken *now*, while the
+schedule carries on injecting. So `Cluster::stop_faults` and `settle` exist now,
+because "let it settle and see if it converges" is only a meaningful question
+once something can turn the tap off. Without that, a node crashed a moment
+before the check is indistinguishable from one that never converges — which is
+exactly the kind of ambiguity this project spent fourteen entries removing
+everywhere else.
