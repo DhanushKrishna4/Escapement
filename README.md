@@ -6,9 +6,9 @@ A Raft consensus implementation in Rust, tested with deterministic simulation.
 > into discrete, countable ticks; the reason a clock ticks rather than simply
 > unwinding. This one does it to a distributed system.
 
-**[Open the visualizer](https://dhanushkrishna4.github.io/Raft-deterministic-simulator-visualized/)**
+**[Open the visualizer](https://dhanushkrishna4.github.io/Escapement/)**
 &nbsp;·&nbsp;
-**[What the fuzzer found](https://dhanushkrishna4.github.io/Raft-deterministic-simulator-visualized/results.html)**
+**[What the fuzzer found](https://dhanushkrishna4.github.io/Escapement/results.html)**
 
 The Raft implementation is table stakes. The deterministic simulator and the
 linearizability checker are the project.
