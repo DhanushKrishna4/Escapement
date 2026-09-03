@@ -143,8 +143,8 @@ a:hover { color: #b6efff; }
   display: flex;
   align-items: baseline;
   gap: 9px;
-  font: 700 15px/1 var(--f-display);
-  letter-spacing: -0.015em;
+  font: 700 16px/1 var(--f-display);
+  letter-spacing: -0.008em;
   color: var(--ink);
 }
 .wordmark .glyph {
@@ -236,6 +236,34 @@ a:hover { color: #b6efff; }
   color: var(--ink);
 }
 .plate dd.pos { color: var(--leader); }
+
+.side { display: flex; flex-direction: column; gap: 14px; }
+
+/* A dictionary gloss. The project is named after a real mechanism and the name
+   is only worth having if the page says why. */
+.gloss {
+  margin: 0;
+  padding: 13px 16px 14px;
+  border-left: 1px solid var(--line-hi);
+}
+.gloss .word {
+  font: 500 15px/1 var(--f-display);
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+.gloss .pos {
+  margin-left: 8px;
+  font: italic 400 11px/1 var(--f-sans);
+  color: var(--ink-3);
+}
+.gloss p {
+  margin: 9px 0 0;
+  max-width: 44ch;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+.gloss p.tie { color: var(--ink-2); }
 
 /* --- banner -------------------------------------------------------------- */
 

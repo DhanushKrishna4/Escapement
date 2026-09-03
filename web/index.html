@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Raft, under deterministic simulation</title>
+    <title>Escapement — Raft under deterministic simulation</title>
     <meta
       name="description"
-      content="A Raft consensus implementation tested by deterministic simulation: every run is a pure function of its seed, so any failure replays exactly."
+      content="Escapement: a Raft consensus implementation tested by deterministic simulation. Every run is a pure function of its seed, so any failure replays exactly."
     />
     <meta name="color-scheme" content="dark" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -21,9 +21,9 @@
     <header class="masthead">
       <div class="wrap">
         <a class="wordmark" href="index.html">
-          <span class="glyph">R</span>
-          raft&#8209;sim
-          <small>deterministic simulation</small>
+          <span class="glyph">E</span>
+          Escapement
+          <small>raft under deterministic simulation</small>
         </a>
         <nav>
           <a class="hide-sm" href="results.html">What the fuzzer found</a>
@@ -56,7 +56,8 @@
             </p>
           </div>
 
-          <div class="plate ticked">
+          <div class="side">
+            <div class="plate ticked">
             <dl>
               <div><dt>Seeds swept</dt><dd>100,000</dd></div>
               <div><dt>Safety violations</dt><dd class="pos">0</dd></div>
@@ -64,6 +65,18 @@
               <div><dt>Real bugs it found</dt><dd>5</dd></div>
               <div><dt>Tests</dt><dd>298</dd></div>
             </dl>
+            </div>
+
+            <figure class="gloss">
+              <span class="word">es&middot;cape&middot;ment</span>
+              <span class="pos">noun</span>
+              <p>
+                the part of a clock that converts continuous force into discrete,
+                countable ticks &mdash; the reason a clock ticks rather than simply
+                unwinding.
+              </p>
+              <p class="tie">This one does it to a distributed system.</p>
+            </figure>
           </div>
         </div>
       </section>

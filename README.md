@@ -1,6 +1,10 @@
-# raft-sim
+# Escapement
 
 A Raft consensus implementation in Rust, tested with deterministic simulation.
+
+> **es·cape·ment** *noun* — the part of a clock that converts continuous force
+> into discrete, countable ticks; the reason a clock ticks rather than simply
+> unwinding. This one does it to a distributed system.
 
 **[Open the visualizer](https://dhanushkrishna4.github.io/Raft-deterministic-simulator-visualized/)**
 &nbsp;·&nbsp;
