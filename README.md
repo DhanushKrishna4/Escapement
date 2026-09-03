@@ -25,7 +25,8 @@ replayable, and shareable as a single number.
 
 ## Status
 
-Build order steps 1–3 are done.
+Complete. All 16 build-order steps are done, and the visualizer and fuzz
+results are deployed.
 
 - [x] 1. Raft message types, log, node skeleton with `step()`
 - [x] 2. Simulator: virtual clock, event queue, perfect network — a 3-node
