@@ -1,0 +1,14 @@
+[package]
+name = "raft"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Raft consensus as a pure state machine: no I/O, no clock, no randomness of its own."
+
+[dependencies]
+serde = { workspace = true }
+
+[lints.rust]
+# The whole project depends on core being deterministic. These are the two
+# stdlib escape hatches that silently break it, so make them hard errors here.
+unsafe_code = "forbid"

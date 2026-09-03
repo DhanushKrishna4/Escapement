@@ -1,0 +1,15 @@
+[package]
+name = "fuzz"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Runs N seeds, reports safety violations, and minimizes the repro."
+
+[dependencies]
+raft = { workspace = true }
+kvstore = { workspace = true }
+sim = { workspace = true }
+serde_json = { workspace = true }
+
+[lints.rust]
+unsafe_code = "forbid"

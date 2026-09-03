@@ -1,0 +1,15 @@
+[package]
+name = "sim"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Deterministic simulator: owns the clock, the network and the faults."
+
+[dependencies]
+raft = { workspace = true }
+kvstore = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[lints.rust]
+unsafe_code = "forbid"

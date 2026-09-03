@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>What the fuzzer found</title>
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/results.css" />
+  </head>
+  <body class="prose">
+    <header>
+      <h1>What the fuzzer found <span class="sub">deterministic simulation results</span></h1>
+      <p class="tagline">
+        <a href="/index.html">&larr; back to the visualizer</a>
+      </p>
+    </header>
+
+    <section>
+      <h2>The sweep</h2>
+      <p>
+        100,000 seeds, 40,000 virtual ticks each, eight threads, 75 seconds. Every
+        seed picks its own cluster size, network, fault schedule, disk behaviour,
+        clock skew, batch size, workload and retry policy — all derived from the
+        seed, so each line below is reproducible from a single number.
+      </p>
+      <table class="stats">
+        <tr><td>violations</td><td class="good">0</td></tr>
+        <tr><td>histories linearizable</td><td>100,000 of 100,000 <span class="dim">(0 undecided)</span></td></tr>
+        <tr><td>elections</td><td>4,352,887</td></tr>
+        <tr><td>log truncations</td><td>156,306 <span class="dim">(218,535 entries discarded)</span></td></tr>
+        <tr><td>crashes / restarts</td><td>1,083,142 / 1,067,231</td></tr>
+        <tr><td>torn steps</td><td>102,595</td></tr>
+        <tr><td>snapshots taken / shipped</td><td>1,026,989 / 209,438</td></tr>
+        <tr><td>membership changes</td><td>31,532</td></tr>
+        <tr><td>reads via ReadIndex</td><td>2,981,429 <span class="dim">(never entering the log)</span></td></tr>
+        <tr><td>messages sent</td><td>636,016,892</td></tr>
+        <tr><td>dropped / partitioned</td><td>38,924,922 / 33,774,353</td></tr>
+        <tr><td>duplicated / reordered</td><td>13,417,381 / 2,329,465</td></tr>
+        <tr><td>client operations</td><td>14,185,650 <span class="dim">(330,741 never answered)</span></td></tr>
+        <tr><td>highest term reached</td><td>243</td></tr>
+      </table>
+      <p class="note">
+        A clean sweep is worth nothing without evidence that it reached anything.
+        The 156,306 truncations are the number that matters: logs actually
+        diverged and were actually forced back into agreement, 156,306 times. The
+        330,741 unanswered operations matter for the same reason — that is the
+        path where a linearizability checker most easily becomes unsound, and it
+        was exercised on real data rather than only in handcrafted tests.
+      </p>
+    </section>
+
+    <section>
+      <h2>Bugs it found in this implementation</h2>
+      <p>
+        These are not hypotheticals or planted examples. Each was a real defect in
+        this Raft implementation, found by the simulator during development. Each
+        is still switchable, so the links below reproduce the failure live. Press play
+        at 1000x; each one fails within about six thousand ticks, a few seconds of
+        watching.
+      </p>
+
+      <article class="bug">
+        <h3>1. Index 0 stops being an anchor once you compact <span class="tag">§7</span></h3>
+        <p>
+          <code>term_at(0)</code> returned <code>Some(0)</code> as the
+          "before the beginning of the log" sentinel. That is what lets a leader
+          replicating from scratch pass the <code>prevLogIndex</code> check with no
+          special case, and it is correct — right up until the log is compacted.
+        </p>
+        <p>
+          A leader whose <code>nextIndex</code> for some follower had walked back to
+          1 would probe with <code>prevLogIndex = 0</code>. A follower that had
+          compacted through index 8 answered <code>Some(0)</code>, the consistency
+          check passed, and the follower appended entries 1..7 onto a log that began
+          at index 9. The result was a silently corrupt log: slot 10 held an entry
+          claiming to be index 1.
+        </p>
+        <p class="found">
+          Found on seed 11278 as a Log Matching violation. <b>Minimized to zero
+          faults</b> — compaction alone reproduces it, no partition or crash
+          required.
+        </p>
+        <p class="fix">
+          The fix makes the sentinel uniform: the anchor is always
+          <code>last_included</code>, which is <code>(0, 0)</code> for a log that has
+          never been compacted. Index 0 answers on a fresh log and stops the moment
+          anything is discarded.
+        </p>
+        <p>
+          <a class="repro" href="/index.html?seed=85&nodes=3&net=hostile&faults=aggressive&load=1&speed=30&bugs=compaction-anchor&snap=8&torn=20&batch=1">Reproduce it live &rarr;</a>
+          <span class="dim">press play; fails by tick 5,780</span>
+        </p>
+      </article>
+
+      <article class="bug">
+        <h3>2. The snapshot and the log are two artifacts that can disagree <span class="tag">§7</span></h3>
+        <p>
+          Installing a snapshot persists the snapshot and then resets the log. I had
+          written a comment claiming the order was safe because a crash in between
+          "leaves the snapshot stored and the log merely un-trimmed — redundant, not
+          lossy."
+        </p>
+        <p>
+          That is true for the <em>compaction</em> case, where the log is a superset
+          of the snapshot. It is false for the <em>reset</em> case, where the
+          surviving log is a stale, shorter one. Recovery then paired a snapshot at
+          index 120 with a log ending at 119, and the node came back with
+          <code>commitIndex</code> past the end of its own log.
+        </p>
+        <p class="found">
+          Found on seed 2367, and only reachable because torn steps are modelled: a
+          crash between two durable writes is the entire failure.
+        </p>
+        <p class="fix">
+          Recovery reconciles the two. Fixing it only in memory made things worse in
+          an instructive way — the node's log got repaired while the durable one did
+          not, so the very next append landed at an index the disk was not
+          expecting. The reconciliation is a recovery action and has to be written
+          back to disk.
+        </p>
+        <p>
+          <a class="repro" href="/index.html?seed=86&nodes=3&net=long_tail&faults=aggressive&load=1&speed=30&bugs=no-reconcile&snap=8&torn=20&batch=4">Reproduce it live &rarr;</a>
+          <span class="dim">press play; breaks Commit Index Within Log by tick 5,916</span>
+        </p>
+      </article>
+
+      <article class="bug">
+        <h3>3. Two read-path mistakes that only failed together <span class="tag">§6.4</span></h3>
+        <p>
+          ReadIndex records the commit index, confirms leadership with a heartbeat
+          round, waits for the state machine to catch up, and only then answers. I
+          got two things wrong at once:
+        </p>
+        <ul>
+          <li>
+            The read index was captured when the request <em>arrived</em>, not when
+            the leader actually knew what was committed. A node that has just
+            restarted has <code>commitIndex</code> 0, and a read pinned to 0 requires
+            nothing of the state machine at all.
+          </li>
+          <li>
+            Reads were resolved <em>before</em> entries were applied, so the answer
+            was emitted ahead of the applies that would have brought the store up to
+            date.
+          </li>
+        </ul>
+        <p>
+          The trace was unambiguous: a node restarted at tick 9,040, answered a read
+          <code>nil</code> at 10,099 with <code>read_index = 0</code>, and replayed
+          its log <em>afterwards</em> in the same tick.
+        </p>
+        <p class="found">
+          <b>Every Raft invariant held.</b> Only the linearizability checker saw it —
+          which is the entire argument for having one. Re-introducing either mistake
+          alone finds nothing across 3,000 seeds; it takes both.
+        </p>
+        <p>
+          <a class="repro" href="/index.html?seed=127&nodes=3&net=hostile&faults=aggressive&load=1&speed=30&bugs=early-read-index&snap=8&batch=1">Reproduce it live &rarr;</a>
+          <span class="dim">press play, then "check linearizability" around tick 4,000 — the invariant panel stays green throughout</span>
+        </p>
+      </article>
+
+      <article class="bug">
+        <h3>4. A rule of §6 I had skipped</h3>
+        <p>
+          The first end-to-end membership change never settled. Every seed showed the
+          same shape: a server <em>removed</em> by the change, still holding only the
+          joint entry — which includes it — no longer receiving heartbeats, timing
+          out forever. Every RequestVote it sent carried a higher term and deposed a
+          perfectly healthy leader. Term 178, commit index stuck at 6.
+        </p>
+        <p>
+          §6 describes this and prescribes the fix: a server that has heard from a
+          leader within the minimum election timeout ignores vote requests entirely.
+          I had implemented joint consensus and skipped the paragraph after it.
+        </p>
+        <p class="found">
+          Worth noting why it went unnoticed for so long: without membership changes
+          this looks like an ordinary partition, and I had already observed, tested
+          and written it up as a known limitation of the base algorithm. Membership
+          changes turn the same situation into a routine consequence of a normal
+          operation.
+        </p>
+      </article>
+
+      <article class="bug">
+        <h3>5. §8's session table assumes one request in flight per client</h3>
+        <p>
+          With client retries switched on, the checker reported something that cannot
+          be an ordering problem at all: <code>put(k0, v23) = cas-failed(actual v20)</code>.
+          A <code>put</code> that answered <code>cas-failed</code>.
+        </p>
+        <p>
+          The session table keeps a single slot per client, so with several requests
+          in flight an old retry can arrive after a newer one has claimed the slot and
+          be handed a completely different command's answer. The paper assumes clients
+          send commands one at a time; my driver did not.
+        </p>
+        <p class="fix">
+          The checker now shape-checks results before searching — a <code>Get</code>
+          must answer <code>Value</code>, a <code>Put</code> must answer <code>Ok</code>
+          — so an answer belonging to a different command is reported as exactly that,
+          instead of as a twenty-operation "no ordering exists".
+        </p>
+      </article>
+    </section>
+
+    <section>
+      <h2>Bugs it found in the checker</h2>
+      <p>
+        Three of the invariant checks were wrong, and all three were found by running
+        at a scale the handcrafted tests never reach. The pattern is consistent enough
+        to name: <b>the checkers are hardest to get right where Raft's guarantees are
+        conditional.</b> Each of these was a property that holds only under a
+        qualification, and the first draft asserted the unqualified version.
+      </p>
+      <ol class="findings">
+        <li>
+          <b>"A committed entry is never replaced", checked per node.</b> A lagging
+          follower is entitled to hold a stale entry at an index a majority has already
+          committed — it simply has not been caught up yet. Replaced with a sound rule:
+          a node must not truncate at or below its <em>own</em> commit index.
+        </li>
+        <li>
+          <b>Leader Completeness without a term filter.</b> It blamed a leader of term
+          12 for lacking an entry from term 13, which did not exist when that leader was
+          elected.
+        </li>
+        <li>
+          <b>Leader Completeness comparing the wrong term.</b> §5.4 is about the term an
+          entry was <em>committed</em> in, not created in — and because §5.4.2 exists
+          precisely so earlier-term entries get committed later, those two are routinely
+          far apart. A leader of term 37 was blamed for entries another node committed in
+          term 38.
+        </li>
+      </ol>
+      <p class="note">
+        Checker validation runs in two directions. Planting bugs establishes that the
+        checkers fire on real failures; it took 50,000 seeds to establish that they do
+        not fire on correct behaviour. A checker with a noise floor is worse than no
+        checker, because it trains you to ignore it.
+      </p>
+    </section>
+
+    <section>
+      <h2>Can it find a bug on purpose?</h2>
+      <p>
+        A harness reporting "no violations" is worth nothing unless it would have said
+        otherwise. Every switch below is a real, historically common Raft mistake, run
+        over 2,000 seeds unless noted.
+      </p>
+      <table class="stats wide">
+        <tr><th>bug</th><th>seeds that failed</th><th>caught by</th></tr>
+        <tr><td>ignore <code>votedFor</code> (§5.2)</td><td>1,857 / 2,000</td><td>invariants</td></tr>
+        <tr><td>uncapped <code>leaderCommit</code> (§5.3)</td><td>953 / 2,000</td><td>invariants</td></tr>
+        <tr><td>never persist hard state (§5.1)</td><td>385 / 2,000</td><td>invariants</td></tr>
+        <tr><td>compaction anchor at 0 (§7)</td><td>42 / 2,000</td><td>invariants</td></tr>
+        <tr><td>serve reads with no ReadIndex round (§6.4)</td><td>19 / 2,000</td><td class="lin">linearizability only</td></tr>
+        <tr><td>snapshot/log not reconciled (§7)</td><td>1 / 2,000</td><td>invariants</td></tr>
+        <tr><td>read index captured on arrival (§6.4)</td><td>1 / 2,000</td><td class="lin">linearizability only</td></tr>
+        <tr><td>commit previous-term entries (§5.4.2)</td><td class="dim">0 / 30,000</td><td>invariants</td></tr>
+      </table>
+      <p class="note">
+        The last row is the honest one. The §5.4.2 violation — Figure 8, the most
+        commonly botched rule in Raft — was found once in 20,000 seeds earlier in
+        development and has not been reproduced since the search space widened. It
+        needs a previous-term entry to reach a majority while the leader's own-term
+        entry does not, and then a node holding a <em>higher-term</em> entry at that
+        index to survive and win an election. That window is extremely narrow.
+      </p>
+      <p class="note">
+        The handcrafted Figure 8 scenario finds it every single time, in
+        milliseconds. That is the argument for keeping precise scenario tests
+        alongside random search rather than treating the fuzzer as a replacement:
+        random search covers the space you did not think of, and handcrafted tests
+        cover the space you did.
+      </p>
+      <p class="note">
+        One more lesson from this table. The first version of the harness could not
+        find <em>half</em> the bugs it was given, because
+        <code>max_entries_per_append</code> was pinned at 64: with a large batch a
+        leader's backfill and its own-term entry always travel in the same message, so
+        they commit together and §5.4.2 can never be violated. A configuration constant
+        left fixed is a whole region of the search space that does not exist.
+      </p>
+    </section>
+
+    <footer>
+      <p class="dim">
+        Reproduce any sweep with
+        <code>cargo run --release -p fuzz -- --seeds 100000</code>, or a single bug with
+        <code>--bug early-read-index</code>. Failures print the seed, write the full
+        event trace, and shrink the fault schedule by delta debugging until every
+        remaining fault is load-bearing.
+      </p>
+    </footer>
+  </body>
+</html>

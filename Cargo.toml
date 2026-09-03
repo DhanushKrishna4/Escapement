@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = ["crates/raft", "crates/kvstore", "crates/sim", "crates/fuzz", "crates/wasm"]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+license = "MIT"
+
+[workspace.dependencies]
+raft = { path = "crates/raft" }
+kvstore = { path = "crates/kvstore" }
+sim = { path = "crates/sim" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

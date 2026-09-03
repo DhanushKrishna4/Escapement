@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Not found</title>
+    <script>
+      // Pages has no server-side routing, so a mistyped path lands here.
+      // Bounce back to the visualizer keeping the query string, because that is
+      // where the run lives — a shared link with a seed in it should still work
+      // even if the path around it was wrong.
+      (function () {
+        var base = location.pathname.split("/").slice(0, 2).join("/");
+        location.replace(base + "/index.html" + location.search + location.hash);
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Redirecting to the visualizer&hellip;</p>
+  </body>
+</html>

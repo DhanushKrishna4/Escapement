@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Raft, visualized</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Raft <span class="sub">deterministic simulation</span></h1>
+      <p class="tagline">
+        <a href="/results.html">What the fuzzer found &rarr;</a><br />
+        Every run is a pure function of its seed, so the link in your address bar
+        reproduces exactly what you are looking at — and the timeline can jump
+        backwards by replaying it.
+      </p>
+    </header>
+
+    <div id="banner"></div>
+
+    <section class="controls">
+      <div class="row">
+        <button id="play" class="primary">Play</button>
+        <button id="stepOnce">Step</button>
+        <button id="restart">Restart</button>
+        <label>Seed <input id="seed" type="number" min="0" step="1" value="1" /></label>
+        <label>Preset
+          <select id="preset">
+            <option value="custom">custom</option>
+            <option value="clean">clean run</option>
+            <option value="flaky">flaky network</option>
+            <option value="churn">leader keeps dying</option>
+            <option value="asym">asymmetric partition</option>
+            <option value="everything">everything at once</option>
+          </select>
+        </label>
+        <label class="speed">Speed <span id="speedLabel">1x</span>
+          <input id="speed" type="range" min="0" max="30" value="6" />
+        </label>
+      </div>
+
+      <div class="row">
+        <label>Nodes
+          <select id="nodes"><option>3</option><option selected>5</option><option>7</option></select>
+        </label>
+        <label>Network
+          <select id="network">
+            <option value="perfect" selected>perfect</option>
+            <option value="flaky">flaky</option>
+            <option value="long_tail">long tail</option>
+            <option value="hostile">hostile</option>
+          </select>
+        </label>
+        <label>Faults
+          <select id="faults">
+            <option value="none" selected>none</option>
+            <option value="occasional">occasional</option>
+            <option value="aggressive">aggressive</option>
+            <option value="asymmetric_only">asymmetric only</option>
+            <option value="crash_only">crashes only</option>
+          </select>
+        </label>
+        <label class="check"><input id="workload" type="checkbox" checked /> client traffic</label>
+        <label class="check"><input id="staleReads" type="checkbox" /> break ReadIndex</label>
+      </div>
+
+      <div class="row tools">
+        <span class="toollabel">Click a node to</span>
+        <button class="tool active" data-tool="partition">partition</button>
+        <button class="tool" data-tool="cut">cut one way</button>
+        <button class="tool" data-tool="crash">crash / restart</button>
+        <button class="tool" data-tool="pause">pause</button>
+        <button id="healAll">heal everything</button>
+        <span class="hint" id="hint">pick two nodes to split them apart, or drag a box around a group</span>
+      </div>
+
+      <div class="row">
+        <label>Write <input id="key" type="text" value="x" size="4" /> =
+          <input id="value" type="text" value="1" size="6" /></label>
+        <button id="doWrite">send</button>
+        <button id="doRead">read it back</button>
+        <span class="hint" id="lastResult"></span>
+      </div>
+    </section>
+
+    <main>
+      <div class="views">
+        <canvas id="cluster" width="880" height="470"></canvas>
+        <div class="logwrap">
+          <h2>Logs <span class="sub">colour is term; filled is committed</span></h2>
+          <canvas id="logs" width="880" height="180"></canvas>
+        </div>
+      </div>
+
+      <aside id="panel">
+        <div class="stat"><span>tick</span><b id="tick">0</b></div>
+        <div class="stat"><span>events</span><b id="events">0</b></div>
+        <div class="stat"><span>leader</span><b id="leader">none</b></div>
+        <div class="stat"><span>elections</span><b id="elections">0</b></div>
+        <div class="stat"><span>truncations</span><b id="truncations">0</b></div>
+        <div class="stat"><span>snapshots</span><b id="snapshots">0</b></div>
+        <div class="stat"><span>in flight</span><b id="inflight">0</b></div>
+
+        <h3>Verification</h3>
+        <div id="invariants" class="ok">all invariants hold</div>
+        <button id="checkNow">check linearizability</button>
+        <div id="checkResult" class="muted">not checked yet</div>
+      </aside>
+    </main>
+
+    <section class="timeline">
+      <h2>Timeline <span class="sub">click an event to travel there</span></h2>
+      <input id="scrub" type="range" min="0" max="100" value="0" />
+      <div id="events-list"></div>
+    </section>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

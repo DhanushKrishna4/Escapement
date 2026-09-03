@@ -1,0 +1,24 @@
+[package]
+name = "raftsim-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Thin wasm-bindgen boundary over the deterministic simulator."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+raft = { workspace = true }
+kvstore = { workspace = true }
+sim = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+wasm-bindgen = "0.2"
+console_error_panic_hook = { version = "0.1", optional = true }
+
+[features]
+default = ["console_error_panic_hook"]
+
+[lints.rust]
+unsafe_code = "forbid"

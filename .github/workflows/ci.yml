@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+
+      # The determinism test and the source scan for wall-clock time, ambient
+      # randomness and hash iteration are both in here. Any of those creeping in
+      # invalidates every recorded seed in the repository, so they gate the
+      # build rather than living in a nightly job somebody stops reading.
+      - name: cargo test
+        run: cargo test --workspace --all-targets
+
+      - name: clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: fmt
+        run: cargo fmt --all -- --check
+
+  fuzz:
+    name: fuzz a fixed seed range
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      # A fixed range, so a regression shows up as the same seed failing rather
+      # than as a number that drifts between runs. Failures print the seed and a
+      # minimized fault schedule.
+      - name: sweep seeds 0..5000
+        run: cargo run --release -p fuzz -- --seeds 5000 --ticks 20000
+
+      # And a shorter sweep with a bug switched on, because a harness that
+      # reports "no violations" is only worth something if it would have said
+      # otherwise.
+      - name: confirm the harness can still find a bug
+        run: |
+          if cargo run --release -p fuzz -- --seeds 300 --bug double-vote --ticks 20000 --no-minimize; then
+            echo "::error::the fuzzer found nothing with a deliberate bug enabled"
+            exit 1
+          fi
+
+  wasm:
+    name: wasm builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --target wasm32-unknown-unknown -p raftsim-wasm
