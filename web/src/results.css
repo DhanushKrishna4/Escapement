@@ -87,10 +87,12 @@ table.stats.wide { max-width: 900px; }
 table.wide td:first-child { min-width: 22rem; color: #b9c4d1; }
 table.wide td:nth-child(3) { color: var(--ink-3); font-size: 12px; }
 
-/* Beats `table.stats td:nth-child(2)`, which sets the default number colour. */
-table.stats td.good, .good { color: var(--leader); font-weight: 600; }
+/* !important, not a more specific selector: the minifier rewrites
+   `table.stats td.good` down to `td.good`, which then loses to
+   `table.stats td:nth-child(2)` and the number silently comes out grey. */
+.good { color: var(--leader) !important; font-weight: 600; }
 .lin { color: var(--cand) !important; }
-table.stats td .dim, .dim { color: var(--ink-3); }
+.dim { color: var(--ink-3); }
 
 /* --- bug writeups -------------------------------------------------------- */
 
