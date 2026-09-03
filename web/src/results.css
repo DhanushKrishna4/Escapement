@@ -1,43 +1,190 @@
-.prose { max-width: 68rem; margin: 0 auto; }
-.prose section { margin-bottom: 34px; }
+/* The fuzz results page. Shares the system in style.css; this file is only the
+   long-form reading layout on top of it. */
+
+.doc { padding: clamp(26px, 3.6vw, 44px) 0 0; max-width: 1080px; }
+.doc h1 {
+  margin: 12px 0 0;
+  font: 700 clamp(32px, 5vw, 56px)/1.02 var(--f-display);
+  letter-spacing: -0.032em;
+}
+.doc h1 em { font-style: normal; color: var(--ink-3); }
+.doc .lede {
+  margin: 18px 0 0;
+  max-width: 66ch;
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.prose section { margin: clamp(38px, 5vw, 62px) 0; max-width: 1080px; }
 .prose h2 {
-  font-size: 17px; margin: 0 0 10px; padding-bottom: 6px;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 0 0 18px;
+  padding-bottom: 11px;
+  border-bottom: 1px solid var(--line);
+  font: 500 19px/1.25 var(--f-display);
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+.prose h2::before {
+  content: counter(sec, decimal-leading-zero);
+  counter-increment: sec;
+  font: 500 10px/1 var(--f-mono);
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+}
+.prose { counter-reset: sec; }
+
+.prose p { max-width: 74ch; color: #b9c4d1; line-height: 1.72; }
+.prose ul, .prose ol { max-width: 74ch; color: #b9c4d1; line-height: 1.72; }
+.prose li { margin-bottom: 7px; }
+.prose em { color: var(--ink); font-style: italic; }
+.prose b { color: var(--ink); font-weight: 600; }
+
+code {
+  background: rgba(125, 227, 255, 0.07);
+  border: 1px solid rgba(125, 227, 255, 0.14);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font: 400 12px/1 var(--f-mono);
+  color: #b6e9fb;
+  white-space: nowrap;
+}
+
+/* --- tables -------------------------------------------------------------- */
+
+table.stats {
+  border-collapse: collapse;
+  margin: 18px 0 18px;
+  width: 100%;
+  max-width: 760px;
+  font-size: 13px;
+}
+table.stats td, table.stats th {
+  padding: 8px 20px 8px 0;
+  text-align: left;
+  vertical-align: baseline;
   border-bottom: 1px solid var(--line);
 }
-.prose h3 { font-size: 14.5px; margin: 0 0 8px; color: var(--text); text-transform: none; letter-spacing: 0; }
-.prose p { max-width: 76ch; color: #c3c8d4; }
-.prose ul, .prose ol { max-width: 76ch; color: #c3c8d4; }
-.prose li { margin-bottom: 7px; }
-code {
-  background: #0f1116; border: 1px solid var(--line); border-radius: 3px;
-  padding: 0 4px; font: 12.5px ui-monospace, SFMono-Regular, monospace;
+table.stats th {
+  font: 500 9.5px/1 var(--f-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding-bottom: 9px;
 }
+table.stats tr:last-child td { border-bottom: 0; }
+table.stats td:first-child { color: var(--ink-2); }
+table.stats td:nth-child(2) {
+  font-family: var(--f-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  white-space: nowrap;
+}
+table.stats.wide { max-width: 900px; }
+table.wide td:first-child { min-width: 22rem; color: #b9c4d1; }
+table.wide td:nth-child(3) { color: var(--ink-3); font-size: 12px; }
 
-table.stats { border-collapse: collapse; margin: 10px 0 14px; }
-table.stats td, table.stats th { padding: 4px 18px 4px 0; text-align: left; vertical-align: top; }
-table.stats th { color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--line); }
-table.stats td:first-child { color: var(--muted); }
-table.stats td:nth-child(2) { font-variant-numeric: tabular-nums; }
-table.wide td:first-child { min-width: 24rem; color: #c3c8d4; }
-.good { color: var(--leader); font-weight: 700; font-size: 15px; }
-.lin { color: var(--warn); }
-.dim { color: #6d768c; }
+/* Beats `table.stats td:nth-child(2)`, which sets the default number colour. */
+table.stats td.good, .good { color: var(--leader); font-weight: 600; }
+.lin { color: var(--cand) !important; }
+table.stats td .dim, .dim { color: var(--ink-3); }
+
+/* --- bug writeups -------------------------------------------------------- */
 
 .bug {
-  padding: 14px 16px; margin: 14px 0;
-  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  position: relative;
+  /* Narrower than the section, so the card hugs its measure instead of being a
+     wide box with a column of text down one side. */
+  max-width: 880px;
+  padding: 20px 22px 18px;
+  margin: 18px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: linear-gradient(180deg, var(--raised), var(--surface));
+  box-shadow: var(--shadow);
 }
+.bug h3 {
+  margin: 0 0 12px;
+  font: 500 16px/1.35 var(--f-display);
+  letter-spacing: -0.012em;
+  color: var(--ink);
+}
+.bug p { max-width: 78ch; font-size: 13.5px; }
+.bug p:last-child { margin-bottom: 0; }
+
 .tag {
-  font: 11px ui-monospace, monospace; color: var(--muted);
-  border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px; margin-left: 6px;
+  display: inline-block;
+  vertical-align: 2px;
+  margin-left: 8px;
+  padding: 2px 6px;
+  border: 1px solid var(--line-hi);
+  border-radius: 3px;
+  font: 500 10px/1 var(--f-mono);
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
 }
-.found { border-left: 2px solid var(--warn); padding-left: 10px; }
-.fix { border-left: 2px solid var(--leader); padding-left: 10px; }
-.note { color: var(--muted); font-size: 13px; }
+
+/* The two callouts carry a label, so the shape of every writeup is legible
+   before you read a word of it: what happened, then what fixed it. */
+.found, .fix {
+  padding: 11px 14px 11px 13px;
+  margin: 14px 0;
+  border-left: 2px solid;
+  border-radius: 0 var(--r) var(--r) 0;
+  font-size: 13px !important;
+}
+.found {
+  border-color: var(--cand);
+  background: linear-gradient(90deg, rgba(245, 181, 68, 0.075), transparent 70%);
+}
+.fix {
+  border-color: var(--leader);
+  background: linear-gradient(90deg, rgba(55, 217, 154, 0.075), transparent 70%);
+}
+.found::before, .fix::before {
+  display: block;
+  margin-bottom: 5px;
+  font: 500 9.5px/1 var(--f-mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.found::before { content: "Found"; color: var(--cand); }
+.fix::before { content: "Fix"; color: var(--leader); }
+
 a.repro {
-  display: inline-block; padding: 5px 12px; margin-right: 10px;
-  background: var(--accent); color: #0d1017; font-weight: 600;
-  border-radius: 5px; text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  margin-right: 12px;
+  background: var(--ink);
+  color: #05070a;
+  font: 600 12px/1 var(--f-sans);
+  border-radius: var(--r);
+  transition: background 0.14s, transform 0.06s;
 }
-a.repro:hover { filter: brightness(1.08); }
-footer { border-top: 1px solid var(--line); padding-top: 12px; }
+a.repro:hover { background: #fff; color: #05070a; }
+a.repro:active { transform: translateY(1px); }
+
+.note {
+  color: var(--ink-2) !important;
+  font-size: 13px;
+  border-left: 1px solid var(--line-hi);
+  padding-left: 14px;
+}
+
+.prose footer {
+  margin: 46px 0 0;
+  padding: 20px 0 44px;
+  border-top: 1px solid var(--line);
+}
+.prose footer p { color: var(--ink-3); font-size: 12.5px; max-width: 80ch; }
+
+@media (max-width: 720px) {
+  table.stats { font-size: 12px; }
+  table.wide td:first-child { min-width: 0; }
+  .bug { padding: 16px 15px 14px; }
+}

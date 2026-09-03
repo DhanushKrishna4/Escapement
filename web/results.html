@@ -4,16 +4,53 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>What the fuzzer found</title>
+    <meta
+      name="description"
+      content="Results from 100,000 deterministic-simulation seeds: the real Raft bugs the simulator found, and the evidence that it would have found more."
+    />
+    <meta name="color-scheme" content="dark" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap"
+    />
     <link rel="stylesheet" href="/src/style.css" />
     <link rel="stylesheet" href="/src/results.css" />
   </head>
-  <body class="prose">
-    <header>
-      <h1>What the fuzzer found <span class="sub">deterministic simulation results</span></h1>
-      <p class="tagline">
-        <a href="index.html">&larr; back to the visualizer</a>
-      </p>
+  <body>
+    <header class="masthead">
+      <div class="wrap">
+        <a class="wordmark" href="index.html">
+          <span class="glyph">R</span>
+          raft&#8209;sim
+          <small>deterministic simulation</small>
+        </a>
+        <nav>
+          <a class="hide-sm" href="index.html">Visualizer</a>
+          <a
+            class="cta"
+            href="https://github.com/DhanushKrishna4/Raft-deterministic-simulator-visualized"
+            target="_blank"
+            rel="noopener"
+            >Source</a
+          >
+        </nav>
+      </div>
     </header>
+
+    <main class="wrap prose">
+      <div class="doc">
+        <p class="eyebrow">Deterministic simulation &middot; results</p>
+        <h1>What the fuzzer <em>found.</em></h1>
+        <p class="lede">
+          Four real defects in this Raft implementation, one rule of the paper I had
+          skipped, and three false positives in my own checkers &mdash; each one
+          reproducible from a single number. Every bug below is still switchable, so
+          the links reproduce the failure live in the visualizer rather than
+          describing it.
+        </p>
+      </div>
 
     <section>
       <h2>The sweep</h2>
@@ -285,14 +322,18 @@
       </p>
     </section>
 
-    <footer>
-      <p class="dim">
-        Reproduce any sweep with
-        <code>cargo run --release -p fuzz -- --seeds 100000</code>, or a single bug with
-        <code>--bug early-read-index</code>. Failures print the seed, write the full
-        event trace, and shrink the fault schedule by delta debugging until every
-        remaining fault is load-bearing.
-      </p>
-    </footer>
+      <footer>
+        <p class="dim">
+          Reproduce any sweep with
+          <code>cargo run --release -p fuzz -- --seeds 100000</code>, or a single bug
+          with <code>--bug early-read-index</code>. Failures print the seed, write the
+          full event trace, and shrink the fault schedule by delta debugging until
+          every remaining fault is load-bearing.
+        </p>
+        <p class="dim">
+          <a href="index.html">&larr; Back to the visualizer</a>
+        </p>
+      </footer>
+    </main>
   </body>
 </html>

@@ -3,117 +3,284 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Raft, visualized</title>
+    <title>Raft, under deterministic simulation</title>
+    <meta
+      name="description"
+      content="A Raft consensus implementation tested by deterministic simulation: every run is a pure function of its seed, so any failure replays exactly."
+    />
+    <meta name="color-scheme" content="dark" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap"
+    />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <header>
-      <h1>Raft <span class="sub">deterministic simulation</span></h1>
-      <p class="tagline">
-        <a href="results.html">What the fuzzer found &rarr;</a><br />
-        Every run is a pure function of its seed, so the link in your address bar
-        reproduces exactly what you are looking at — and the timeline can jump
-        backwards by replaying it.
-      </p>
+    <header class="masthead">
+      <div class="wrap">
+        <a class="wordmark" href="index.html">
+          <span class="glyph">R</span>
+          raft&#8209;sim
+          <small>deterministic simulation</small>
+        </a>
+        <nav>
+          <a class="hide-sm" href="results.html">What the fuzzer found</a>
+          <a
+            class="cta"
+            href="https://github.com/DhanushKrishna4/Raft-deterministic-simulator-visualized"
+            target="_blank"
+            rel="noopener"
+            >Source</a
+          >
+        </nav>
+      </div>
     </header>
 
-    <div id="banner"></div>
+    <main class="wrap">
+      <section class="hero">
+        <div class="hero-grid">
+          <div>
+            <p class="eyebrow">Consensus · fault injection · linearizability</p>
+            <h1>Raft, <em>replayed exactly.</em></h1>
+            <p class="lede">
+              A Raft node here is a pure state machine — no sockets, no clock, no
+              randomness. A simulator owns all three, so an entire run is
+              <strong>a pure function of its seed</strong>: the link in your address
+              bar reproduces what you are looking at, tick for tick, and the
+              timeline can travel backwards by replaying it.
+              <br /><br />
+              Partition the cluster. Kill the leader. Watch the logs diverge, then
+              watch them get forced back into agreement.
+            </p>
+          </div>
 
-    <section class="controls">
-      <div class="row">
-        <button id="play" class="primary">Play</button>
-        <button id="stepOnce">Step</button>
-        <button id="restart">Restart</button>
-        <label>Seed <input id="seed" type="number" min="0" step="1" value="1" /></label>
-        <label>Preset
-          <select id="preset">
-            <option value="custom">custom</option>
-            <option value="clean">clean run</option>
-            <option value="flaky">flaky network</option>
-            <option value="churn">leader keeps dying</option>
-            <option value="asym">asymmetric partition</option>
-            <option value="everything">everything at once</option>
-          </select>
-        </label>
-        <label class="speed">Speed <span id="speedLabel">1x</span>
-          <input id="speed" type="range" min="0" max="30" value="6" />
-        </label>
-      </div>
-
-      <div class="row">
-        <label>Nodes
-          <select id="nodes"><option>3</option><option selected>5</option><option>7</option></select>
-        </label>
-        <label>Network
-          <select id="network">
-            <option value="perfect" selected>perfect</option>
-            <option value="flaky">flaky</option>
-            <option value="long_tail">long tail</option>
-            <option value="hostile">hostile</option>
-          </select>
-        </label>
-        <label>Faults
-          <select id="faults">
-            <option value="none" selected>none</option>
-            <option value="occasional">occasional</option>
-            <option value="aggressive">aggressive</option>
-            <option value="asymmetric_only">asymmetric only</option>
-            <option value="crash_only">crashes only</option>
-          </select>
-        </label>
-        <label class="check"><input id="workload" type="checkbox" checked /> client traffic</label>
-        <label class="check"><input id="staleReads" type="checkbox" /> break ReadIndex</label>
-      </div>
-
-      <div class="row tools">
-        <span class="toollabel">Click a node to</span>
-        <button class="tool active" data-tool="partition">partition</button>
-        <button class="tool" data-tool="cut">cut one way</button>
-        <button class="tool" data-tool="crash">crash / restart</button>
-        <button class="tool" data-tool="pause">pause</button>
-        <button id="healAll">heal everything</button>
-        <span class="hint" id="hint">pick two nodes to split them apart, or drag a box around a group</span>
-      </div>
-
-      <div class="row">
-        <label>Write <input id="key" type="text" value="x" size="4" /> =
-          <input id="value" type="text" value="1" size="6" /></label>
-        <button id="doWrite">send</button>
-        <button id="doRead">read it back</button>
-        <span class="hint" id="lastResult"></span>
-      </div>
-    </section>
-
-    <main>
-      <div class="views">
-        <canvas id="cluster" width="880" height="470"></canvas>
-        <div class="logwrap">
-          <h2>Logs <span class="sub">colour is term; filled is committed</span></h2>
-          <canvas id="logs" width="880" height="180"></canvas>
+          <div class="plate ticked">
+            <dl>
+              <div><dt>Seeds swept</dt><dd>100,000</dd></div>
+              <div><dt>Safety violations</dt><dd class="pos">0</dd></div>
+              <div><dt>Histories linearizable</dt><dd class="pos">100,000</dd></div>
+              <div><dt>Real bugs it found</dt><dd>5</dd></div>
+              <div><dt>Tests</dt><dd>298</dd></div>
+            </dl>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <aside id="panel">
-        <div class="stat"><span>tick</span><b id="tick">0</b></div>
-        <div class="stat"><span>events</span><b id="events">0</b></div>
-        <div class="stat"><span>leader</span><b id="leader">none</b></div>
-        <div class="stat"><span>elections</span><b id="elections">0</b></div>
-        <div class="stat"><span>truncations</span><b id="truncations">0</b></div>
-        <div class="stat"><span>snapshots</span><b id="snapshots">0</b></div>
-        <div class="stat"><span>in flight</span><b id="inflight">0</b></div>
+      <div id="banner"></div>
 
-        <h3>Verification</h3>
-        <div id="invariants" class="ok">all invariants hold</div>
-        <button id="checkNow">check linearizability</button>
-        <div id="checkResult" class="muted">not checked yet</div>
-      </aside>
+      <section class="deck ticked">
+        <div class="group">
+          <p class="eyebrow">Transport</p>
+          <div class="line">
+            <button id="play" class="primary" data-state="paused">Play</button>
+            <button id="stepOnce">Step</button>
+            <button id="restart">Restart</button>
+          </div>
+          <label class="field stack">
+            <span>Speed <span class="val" id="speedLabel">1x</span></span>
+            <input id="speed" type="range" min="0" max="30" value="6" />
+          </label>
+        </div>
+
+        <div class="group">
+          <p class="eyebrow">Run</p>
+          <div class="line">
+            <label class="field">Seed
+              <input id="seed" type="number" min="0" step="1" value="1" />
+            </label>
+          </div>
+          <div class="line">
+            <label class="field">Preset
+              <select id="preset">
+                <option value="custom">custom</option>
+                <option value="clean">clean run</option>
+                <option value="flaky">flaky network</option>
+                <option value="churn">leader keeps dying</option>
+                <option value="asym">asymmetric partition</option>
+                <option value="everything">everything at once</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="group">
+          <p class="eyebrow">Conditions</p>
+          <div class="line">
+            <label class="field">Nodes
+              <select id="nodes">
+                <option>3</option><option selected>5</option><option>7</option>
+              </select>
+            </label>
+            <label class="field">Net
+              <select id="network">
+                <option value="perfect" selected>perfect</option>
+                <option value="flaky">flaky</option>
+                <option value="long_tail">long tail</option>
+                <option value="hostile">hostile</option>
+              </select>
+            </label>
+          </div>
+          <div class="line">
+            <label class="field">Faults
+              <select id="faults">
+                <option value="none" selected>none</option>
+                <option value="occasional">occasional</option>
+                <option value="aggressive">aggressive</option>
+                <option value="asymmetric_only">asymmetric only</option>
+                <option value="crash_only">crashes only</option>
+              </select>
+            </label>
+          </div>
+          <div class="line">
+            <label class="check">
+              <input id="workload" type="checkbox" checked /><span class="sw"></span>
+              client traffic
+            </label>
+            <label class="check danger">
+              <input id="staleReads" type="checkbox" /><span class="sw"></span>
+              break ReadIndex
+            </label>
+          </div>
+        </div>
+
+        <div class="group group--wide">
+          <p class="eyebrow">Intervene · click a node on the map</p>
+          <div class="line">
+            <div class="seg" role="group" aria-label="Intervention tool">
+              <button class="tool active" data-tool="partition">Partition</button>
+              <button class="tool" data-tool="cut">Cut one way</button>
+              <button class="tool" data-tool="crash">Crash</button>
+              <button class="tool" data-tool="pause">Pause</button>
+            </div>
+            <button id="healAll">Heal everything</button>
+          </div>
+          <p class="hint" id="hint">
+            pick two nodes to split them apart, or drag a box around a group
+          </p>
+          <div class="line">
+            <label class="field">Write
+              <input id="key" type="text" class="tiny" value="x" aria-label="key" />
+              <span aria-hidden="true">=</span>
+              <input id="value" type="text" class="tiny" value="1" aria-label="value" />
+            </label>
+            <button id="doWrite">Send</button>
+            <button id="doRead">Read back</button>
+            <span class="hint" id="lastResult"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="stage">
+        <div class="views">
+          <div class="panel ticked">
+            <header>
+              <h2>Cluster</h2>
+              <div class="readout">
+                <span><i>tick</i><b id="tick">0</b></span>
+                <span><i>leader</i><b id="leader" class="none">none</b></span>
+                <span><i>in flight</i><b id="inflight">0</b></span>
+              </div>
+            </header>
+            <div class="map">
+              <canvas id="cluster"></canvas>
+              <aside>
+                <p class="eyebrow">State machine</p>
+                <div id="kv"></div>
+                <p class="foot">
+                  The committed key–value state, replicated. Only entries a
+                  majority has durably stored ever reach it.
+                </p>
+              </aside>
+            </div>
+            <div class="legend">
+              <span class="k-leader"><i></i>leader</span>
+              <span class="k-cand"><i></i>candidate</span>
+              <span class="k-follow"><i></i>follower</span>
+              <span class="k-bad"><i></i>down</span>
+              <span class="k-msg"><i></i>AppendEntries</span>
+              <span class="k-cand"><i></i>RequestVote</span>
+              <span class="k-snap"><i></i>InstallSnapshot</span>
+              <span><em>dashed wire = traffic blocked</em></span>
+            </div>
+          </div>
+
+          <div class="panel ticked">
+            <header>
+              <h2>Logs</h2>
+              <div class="readout">
+                <span><i>index</i><b id="logRange">—</b></span>
+              </div>
+            </header>
+            <canvas id="logs"></canvas>
+            <div class="legend">
+              <span>
+                <i style="color: #6aa6f0"></i><i style="color: #37d99a"></i><i
+                  style="color: #f5b544"
+                ></i><i style="color: #a97cf0"></i>
+                colour is the term that created the entry
+              </span>
+              <span class="hollow"><i style="color: var(--ink-2)"></i>outlined = not yet committed</span>
+              <span class="k-snap"><i></i>hatched = compacted into a snapshot</span>
+              <span><em>a column is the same index on every node</em></span>
+            </div>
+          </div>
+        </div>
+
+        <aside class="rail">
+          <div class="panel ticked">
+            <header><h2>Verification</h2></header>
+            <div class="verdict">
+              <div id="invariants" class="status ok">
+                <span class="led"></span>
+                <span class="msg">all invariants hold</span>
+              </div>
+              <button id="checkNow">Check linearizability</button>
+              <div id="checkResult">not checked yet</div>
+            </div>
+          </div>
+
+          <div class="panel ticked">
+            <header><h2>Counters</h2></header>
+            <div class="stats">
+              <div class="stat"><span>events</span><b id="events">0</b></div>
+              <div class="stat"><span>elections</span><b id="elections">0</b></div>
+              <div class="stat"><span>max term</span><b id="maxterm">0</b></div>
+              <div class="stat"><span>truncations</span><b id="truncations">0</b></div>
+              <div class="stat"><span>applied</span><b id="applied">0</b></div>
+              <div class="stat"><span>snapshots</span><b id="snapshots">0</b></div>
+              <div class="stat"><span>reads</span><b id="reads">0</b></div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="panel ticked" style="margin-top: 16px">
+        <header>
+          <h2>Timeline</h2>
+          <span class="spacer"></span>
+          <span class="readout"><em class="hint">click an event to travel there</em></span>
+        </header>
+        <div class="transport">
+          <input id="scrub" type="range" min="0" max="100" value="0" aria-label="Scrub through time" />
+          <div class="ends"><span>0</span><span id="scrubMax">0</span></div>
+        </div>
+        <div id="events-list"></div>
+      </section>
+
+      <footer class="site">
+        <span>Raft from the extended paper — Ongaro &amp; Ousterhout. No Raft library, no async runtime, no wall clock.</span>
+        <span class="spacer"></span>
+        <a href="results.html">What the fuzzer found</a>
+        <a
+          href="https://github.com/DhanushKrishna4/Raft-deterministic-simulator-visualized"
+          target="_blank"
+          rel="noopener"
+          >Source</a
+        >
+      </footer>
     </main>
-
-    <section class="timeline">
-      <h2>Timeline <span class="sub">click an event to travel there</span></h2>
-      <input id="scrub" type="range" min="0" max="100" value="0" />
-      <div id="events-list"></div>
-    </section>
 
     <script type="module" src="/src/main.ts"></script>
   </body>
